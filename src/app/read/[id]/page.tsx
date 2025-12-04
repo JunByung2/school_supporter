@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import RemoveBtn from "@/components/RemoveBtn";
 import Link from "next/link";
-import { useSession } from "next-auth/react"; // 🔥 추가
+import { useSession } from "next-auth/react";
 import ContentBox from "@/components/contentbox";
 import CommentList from "@/components/CommentList";
 
@@ -16,17 +16,21 @@ interface Topic {
   createdAt: string;
   updatedAt: string;
   views: number;
-  author: string; // 🔥 DB 작성자 이름
+  author: string;
 }
 
 export default function Readpage() {
-  const { id } = useParams();
+  const params = useParams<{ id: string }>();
+  const id = params?.id;
   const router = useRouter();
-  const { data: session } = useSession(); // 🔥 로그인 정보
+  const { data: session } = useSession();
+
   const [topic, setTopic] = useState<Topic | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!id) return;
+
     async function fetchTopic() {
       try {
         const res = await fetch(`/api/topics/${id}`);
@@ -41,11 +45,12 @@ export default function Readpage() {
     fetchTopic();
   }, [id]);
 
+  if (!id) return <p className="text-center py-10">잘못된 접근입니다.</p>;
   if (loading) return <p className="text-center py-10">Loading...</p>;
   if (!topic)
     return <p className="text-center py-10">존재하지 않는 글입니다.</p>;
 
-  const isOwner = session?.user?.name === topic.author; // 🔥 본인 글인지 체크
+  const isOwner = session?.user?.name === topic.author;
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-8">
@@ -59,7 +64,7 @@ export default function Readpage() {
           목록으로
         </button>
 
-        {isOwner && ( // 🔥 본인 글일 경우에만 수정/삭제 보임
+        {isOwner && (
           <div className="flex gap-2">
             <Link
               href={`/edit/${topic._id}`}
@@ -67,7 +72,6 @@ export default function Readpage() {
             >
               수정
             </Link>
-
             <RemoveBtn id={topic._id} />
           </div>
         )}
@@ -92,6 +96,7 @@ export default function Readpage() {
           <div style={{ whiteSpace: "pre-wrap" }}>{topic.description}</div>
         </section>
       </article>
+
       <CommentList />
       <ContentBox />
     </main>
